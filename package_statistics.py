@@ -102,7 +102,6 @@ def pretty_print_results(data):
 def main():
     download_url = "{}Contents-{}.gz".format(options.mirror, options.arch)
     data = download_file(download_url)
-    print(data)
     if data:
         result = stats(gunzip(data))
         top_items = top_list(result)
