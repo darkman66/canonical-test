@@ -28,6 +28,11 @@ log.addHandler(hldr)
 
 log.info('Starting stats script')
 
+def save_cache(cache_file):
+    with open(cache_file, 'wb') as f:
+        f.write(r.content)
+
+
 def download_file(url):
     """Downloading externally hosted file"""
     cache_file = os.path.join(CACHE_PATH, md5(url.encode('latin-1')).hexdigest())
@@ -40,9 +45,7 @@ def download_file(url):
     r = requests.get(url, allow_redirects=True)
 
     if options.cache and not os.path.exists(cache_file):
-        with open(cache_file, 'wb') as f:
-            f.write(r.content)
-
+        save_cache(cache_file)
     return r.content
 
 
@@ -75,8 +78,10 @@ def stats(data):
 
 def top_list(stats_data, number_of_results=10):
     """Sorting by the best results"""
-    log.info('Sorting results')
-    return sorted(stats_data, key=itemgetter(1), reverse=True)[:number_of_results]
+    if stats_data:
+        log.info('Sorting results')
+        return sorted(stats_data, key=itemgetter(1), reverse=True)[:number_of_results]
+    log.warning('Invalid stats data: {}'.format(stats_data))
 
 
 def print_line(elem_1, elem_2, elem_3):
@@ -91,7 +96,7 @@ def pretty_print_results(data):
     """Pretty print stats"""
     print_line("No", "package name", "number of files")
 
-    for i, v in enumerate(data):
+    for i, v in enumerate(data if data else []):
         print_line(i + 1, v[0], v[1])
 
 
