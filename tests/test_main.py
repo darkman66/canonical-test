@@ -5,6 +5,16 @@ from mock import patch, Mock
 from package_statistics import pretty_print_results
 from package_statistics import top_list
 from package_statistics import download_file
+from package_statistics import main
+
+
+class Base(unittest.TestCase):
+
+    def setUp(self):
+        self.url = 'http://foo.org'
+        self.cache_file = '/var/tmp/{}'.format(md5(self.url.encode('latin-1')).hexdigest())
+        if os.path.exists(self.cache_file):
+            os.remove(self.cache_file)
 
 
 class TestPrettyPrint(unittest.TestCase):
@@ -51,21 +61,17 @@ class TestSortingTopList(unittest.TestCase):
         self.assertIsNone(result) 
 
 
-class TestDownloadFile(unittest.TestCase):
-
-    def setUp(self):
-        self.url = 'http://foo.org'
-        self.cache_file = '/var/tmp/{}'.format(md5(self.url.encode('latin-1')).hexdigest())
-        if os.path.exists(self.cache_file):
-            os.remove(self.cache_file)
+class TestDownloadFile(Base):
 
     @patch('package_statistics.save_cache')
     @patch('package_statistics.requests.get')
     def test_calling_external_resource_when_no_cache_in_use(self, mock_get, mock_save):
-        mock_get.return_result = Mock(content='abc')
-        download_file(self.url)
+        downloaded_value = 'some text'
+        mock_get.return_value = Mock(content=downloaded_value)
+        result = download_file(self.url)
         mock_get.assert_called_once_with(self.url, allow_redirects=True)
         mock_save.assert_not_called()
+        self.assertEqual(result, downloaded_value)
 
     @patch('package_statistics.options')
     @patch('package_statistics.save_cache')
@@ -76,7 +82,7 @@ class TestDownloadFile(unittest.TestCase):
         mock_options.return_value = Mock(cache=True)
         result = download_file(self.url)
         mock_get.assert_called_once_with(self.url, allow_redirects=True)
-        mock_save.assert_called_once_with(self.cache_file)
+        mock_save.assert_called_once_with(self.cache_file, downloaded_value)
         self.assertEqual(result, downloaded_value)
 
     @patch('package_statistics.options')
@@ -92,3 +98,24 @@ class TestDownloadFile(unittest.TestCase):
         mock_save.assert_not_called()
 
         self.assertEqual(result, cached_value)
+
+class TestMain(Base):
+
+    @patch('package_statistics.stats')
+    @patch('package_statistics.requests.get')
+    def test_invalid_conted_downloaded(self, mock_get, mock_stats):
+        mock_get.return_value = Mock(content='')
+        main()
+        mock_stats.assert_not_called()
+
+    @patch('package_statistics.gunzip')
+    @patch('package_statistics.top_list')
+    @patch('package_statistics.stats')
+    @patch('package_statistics.requests.get')
+    def test_invalid_conted_downloaded(self, mock_get, mock_stats, mock_top_list, mock_zip):
+        downloaded_value = 'some text'
+        mock_get.return_value = Mock(content=downloaded_value)
+        main()
+        mock_stats.assert_called_once()
+        mock_zip.assert_called_once_with(downloaded_value)
+        mock_top_list.assert_called_once()

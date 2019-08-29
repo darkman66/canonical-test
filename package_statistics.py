@@ -28,16 +28,16 @@ log.addHandler(hldr)
 
 log.info('Starting stats script')
 
-def save_cache(cache_file):
+def save_cache(cache_file, content):
     with open(cache_file, 'wb') as f:
-        f.write(r.content)
+        f.write(content)
 
 
 def download_file(url):
     """Downloading externally hosted file"""
     cache_file = os.path.join(CACHE_PATH, md5(url.encode('latin-1')).hexdigest())
 
-    if options.cache and os.path.exists(cache_file):
+    if options.cache and os.path.exists(cache_file) and os.stat(cache_file).st_size > 0:
         log.info('Using file from cache: {}'.format(cache_file))
         return open(cache_file, 'rb').read()
 
@@ -45,7 +45,7 @@ def download_file(url):
     r = requests.get(url, allow_redirects=True)
 
     if options.cache and not os.path.exists(cache_file):
-        save_cache(cache_file)
+        save_cache(cache_file, r.content)
     return r.content
 
 
@@ -99,10 +99,17 @@ def pretty_print_results(data):
     for i, v in enumerate(data if data else []):
         print_line(i + 1, v[0], v[1])
 
-
-if __name__ == "__main__":
+def main():
     download_url = "{}Contents-{}.gz".format(options.mirror, options.arch)
     data = download_file(download_url)
-    result = stats(gunzip(data))
-    top_items = top_list(result)
-    pretty_print_results(top_items)
+    print(data)
+    if data:
+        result = stats(gunzip(data))
+        top_items = top_list(result)
+        pretty_print_results(top_items)
+    else:
+        log.error('Problem with fetching data')
+
+
+if __name__ == "__main__":
+    main()
