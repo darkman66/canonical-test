@@ -5,12 +5,13 @@ The program should parse the file and output the statistics of the top 10 packag
 
 An example output could be:
 
-./package_statistics.py amd64
 
-1. <package name 1> <number of files>
-2. <package name 2> <number of files>
-......
-10. <package name 10> <number of files>
+    python package_statistics.py --arch amd64
+
+    1. <package name 1> <number of files>
+    2. <package name 2> <number of files>
+    ......
+    10. <package name 10> <number of files>
 
 You can use the following Debian mirror
 
